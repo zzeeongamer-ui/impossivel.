@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio de Decodificação</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #00ff00;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ff00;
+            font-size: 2em;
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .game-area {
+            background: #000;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 400px;
+            position: relative;
+        }
+
+        .difficulty-selector {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .difficulty-selector button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .difficulty-selector button:hover {
+            background: #00cc00;
+            transform: scale(1.05);
+        }
+
+        .difficulty-selector button.selected {
+            background: #ff0000;
+            color: #fff;
+        }
+
+        canvas {
+            border: 1px solid #00ff00;
+            display: block;
+            margin: 0 auto;
+            background: #000;
+        }
+
+        .instructions {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 255, 0, 0.1);
+            border-left: 3px solid #00ff00;
+        }
+
+        .key-display {
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            word-wrap: break-word;
+            line-height: 1.8;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .blink {
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0; }
+        }
+
+        .decode-btn {
+            display: block;
+            margin: 20px auto 0;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .decode-btn:hover {
+            background: #00cc00;
+            transform: scale(1.05);
+        }
+
+        .decoded-text {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #ffd700;
+            border-radius: 5px;
+            color: #ffd700;
+            font-size: 1.3em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 DESAFIO DE DECODIFICAÇÃO 🔐</h1>
+        
+        <div class="status">
+            <div id="gameStatus">Complete o minigame para desbloquear a chave!</div>
+        </div>
+
+        <div id="difficultySection" class="difficulty-selector">
+            <p style="margin-bottom: 10px; font-size: 1.3em; color: #ff0000;">💀 MODO IMPOSSÍVEL 💀</p>
+            <button onclick="startGame('insane')" class="selected">INICIAR DESAFIO</button>
+        </div>
+
+        <div class="instructions">
+            <strong>⚠️ MODO IMPOSSÍVEL ATIVADO ⚠️</strong><br>
+            Use as setas ← → para mover. Desvie dos obstáculos vermelhos! 
+            Você precisa de 1.000.000.000.000.000.000.000.000.000.000.000 pontos para vencer. Você tem apenas 1 VIDA, os obstáculos são ULTRA RÁPIDOS e a pontuação aumenta apenas 1 ponto a cada 5 SEGUNDOS!
+        </div>
+
+        <div class="stats">
+            <div>Pontuação: <span id="score">0</span></div>
+            <div>Objetivo: <span id="target">100</span></div>
+            <div>Vidas: <span id="lives">3</span></div>
+        </div>
+
+        <div class="game-area">
+            <canvas id="gameCanvas" width="740" height="400"></canvas>
+        </div>
+
+        <div id="keySection" class="key-display hidden">
+            <h2 style="margin-bottom: 15px;">🎉 CHAVE DESBLOQUEADA! 🎉</h2>
+            <div style="font-size: 0.9em; margin-bottom: 10px;">Chave em Binário:</div>
+            <div id="binaryKey" style="font-size: 0.85em; color: #00ff00;"></div>
+            <button class="decode-btn" onclick="decodeKey()">Decodificar Chave</button>
+            <div id="decodedText" class="decoded-text hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = {
+            player: { x: 370, y: 350, width: 30, height: 30, speed: 5 },
+            obstacles: [],
+            score: 0,
+            lives: 3,
+            gameOver: false,
+            won: false,
+            keys: {},
+            obstacleSpeed: 3,
+            spawnRate: 0.02,
+            targetScore: 100,
+            difficulty: 'hard',
+            lastScoreTime: Date.now()
+        };
+
+        const binaryKey = '01010101 01001101 00100000 01010100 01000101 01011000 01010100 01001111 00100000 01010000 01000001 01010010 01000001 00100000 01000100 01000101 01000011 01001111 01000100 01001001 01000110 01001001 01000011 01000001 01010010 00100000 00110001 00110010 00110011 00100000 01010110 01000001 01001001 00100000 01010011 01000101 00100000 01000110 01010101 01000100 01000101 01010010';
+
+        function startGame(difficulty) {
+            gameState = {
+                player: { x: 370, y: 350, width: 30, height: 30, speed: 5 },
+                obstacles: [],
+                score: 0,
+                lives: 1,
+                gameOver: false,
+                won: false,
+                keys: {},
+                difficulty: 'insane',
+                obstacleSpeed: 10,
+                spawnRate: 0.035,
+                targetScore: '1000000000000000000000000000000000',
+                lastScoreTime: Date.now()
+            };
+
+            document.getElementById('target').textContent = '1.000.000.000.000.000.000.000.000.000.000.000';
+            document.getElementById('keySection').classList.add('hidden');
+            document.getElementById('difficultySection').style.display = 'none';
+            updateDisplay();
+            gameLoop();
+        }
+
+        function drawPlayer() {
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(gameState.player.x, gameState.player.y, 
+                        gameState.player.width, gameState.player.height);
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(gameState.player.x + 8, gameState.player.y + 8, 6, 6);
+            ctx.fillRect(gameState.player.x + 16, gameState.player.y + 8, 6, 6);
+        }
+
+        function drawObstacles() {
+            gameState.obstacles.forEach(obs => {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                
+                ctx.strokeStyle = '#ff6666';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+            });
+        }
+
+        function updateObstacles() {
+            gameState.obstacles.forEach(obs => {
+                obs.y += gameState.obstacleSpeed;
+            });
+
+            gameState.obstacles = gameState.obstacles.filter(obs => obs.y < canvas.height);
+
+            if (Math.random() < gameState.spawnRate) {
+                gameState.obstacles.push({
+                    x: Math.random() * (canvas.width - 40),
+                    y: -30,
+                    width: 30 + Math.random() * 20,
+                    height: 30 + Math.random() * 20
+                });
+            }
+        }
+
+        function checkCollisions() {
+            for (let obs of gameState.obstacles) {
+                if (gameState.player.x < obs.x + obs.width &&
+                    gameState.player.x + gameState.player.width > obs.x &&
+                    gameState.player.y < obs.y + obs.height &&
+                    gameState.player.y + gameState.player.height > obs.y) {
+                    
+                    gameState.lives--;
+                    gameState.obstacles = gameState.obstacles.filter(o => o !== obs);
+                    
+                    if (gameState.lives <= 0) {
+                        gameState.gameOver = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        function updatePlayer() {
+            if (gameState.keys['ArrowLeft'] && gameState.player.x > 0) {
+                gameState.player.x -= gameState.player.speed;
+            }
+            if (gameState.keys['ArrowRight'] && 
+                gameState.player.x < canvas.width - gameState.player.width) {
+                gameState.player.x += gameState.player.speed;
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('lives').textContent = gameState.lives;
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = '#003300';
+            for (let i = 0; i < canvas.height; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+        }
+
+        function gameLoop() {
+            if (gameState.gameOver) {
+                ctx.fillStyle = '#ff0000';
+                ctx.font = '48px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+                ctx.font = '24px Courier New';
+                ctx.fillText('Pressione F5 para reiniciar', canvas.width / 2, canvas.height / 2 + 40);
+                document.getElementById('gameStatus').innerHTML = 
+                    '<span class="blink">GAME OVER! Pressione F5 para tentar novamente.</span>';
+                document.getElementById('difficultySection').style.display = 'block';
+                return;
+            }
+
+            if (gameState.won) {
+                return;
+            }
+
+            drawBackground();
+            updatePlayer();
+            updateObstacles();
+            checkCollisions();
+            drawPlayer();
+            drawObstacles();
+
+            const currentTime = Date.now();
+            if (currentTime - gameState.lastScoreTime >= 5000) {
+                gameState.score++;
+                gameState.lastScoreTime = currentTime;
+                updateDisplay();
+            }
+
+            if (gameState.score >= parseInt(gameState.targetScore)) {
+                gameState.won = true;
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '48px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('VITÓRIA!', canvas.width / 2, canvas.height / 2);
+                document.getElementById('gameStatus').innerHTML = 
+                    '<span class="blink">🎉 VOCÊ VENCEU! Chave desbloqueada abaixo! 🎉</span>';
+                document.getElementById('keySection').classList.remove('hidden');
+                document.getElementById('binaryKey').textContent = binaryKey;
+                return;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function decodeKey() {
+            const binary = binaryKey.split(' ');
+            let decoded = '';
+            
+            binary.forEach(byte => {
+                const decimal = parseInt(byte, 2);
+                decoded += String.fromCharCode(decimal);
+            });
+
+            document.getElementById('decodedText').textContent = 
+                '📜 Mensagem Decodificada: ' + decoded;
+            document.getElementById('decodedText').classList.remove('hidden');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            gameState.keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            gameState.keys[e.key] = false;
+        });
+
+        // Iniciar com dificuldade hard por padrão
+        // startGame('hard');
+    </script>
+</body>
+</html>
